@@ -1,9 +1,3 @@
-//desplegar usuarios
-//seleccioanr usuario para chatear
-//enviar contraseña publica a usuario seleccionado
-//iniciar chat
-
-
 import React, { useEffect, useState } from "react";
 
 type User = {
@@ -12,23 +6,31 @@ type User = {
 };
 
 export function UsersList({ onSelect }: { onSelect: (user: User) => void }) {
+
   const [users, setUsers] = useState<User[]>([]);
+  const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
-    fetch("http://localhost:4000/users")
+    fetch(`${API_URL}/api/user`)
       .then(res => res.json())
       .then(data => setUsers(data));
+
+console.log("datoss", users)
+
   }, []);
+
+  
 
   return (
     <div>
       <h3>Usuarios</h3>
 
       {users.map(user => (
-        <button key={user.id} onClick={() => onSelect(user)}>
+        <button key={user.name} onClick={() => onSelect(user)}>
           {user.name}
         </button>
       ))}
+
     </div>
   );
 }

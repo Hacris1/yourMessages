@@ -2,6 +2,9 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
 export function LoginForm() {
+
+  const API_URL = import.meta.env.VITE_API_URL;
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -12,10 +15,13 @@ export function LoginForm() {
     setError("");
 
     try {
-      const res = await fetch("http://localhost:4000/login", {
+
+      const res = await fetch(`${API_URL}api/user/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email, password })
       });
 
       if (!res.ok) {
@@ -25,6 +31,7 @@ export function LoginForm() {
 
       const data = await res.json();
       setToken(data.token);
+
     } catch (err) {
       setError("Error de conexión");
     }
@@ -38,13 +45,16 @@ export function LoginForm() {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
+
       <input
         type="password"
         placeholder="Contraseña"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
+
       <button type="submit">Ingresar</button>
+
       {error && <p style={{ color: "red" }}>{error}</p>}
     </form>
   );

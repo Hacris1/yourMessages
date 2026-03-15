@@ -12,11 +12,15 @@ export default function App() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   return (
-    <div style={{ display: "flex", gap: "20px" }}>
+    <div style={{ display: "flex", gap: "20px", padding: "20px" }}>
 
-      <UsersList onSelect={setSelectedUser} />
+      <div>
+        <UsersList onSelect={setSelectedUser} />
+      </div>
 
-      <ChatContainer user={selectedUser} />
+      <div style={{ flex: 1 }}>
+        <ChatContainer user={selectedUser} />
+      </div>
 
     </div>
   );
