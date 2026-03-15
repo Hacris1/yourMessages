@@ -1,13 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import forge from "node-forge";
 import EmojiPicker from "emoji-picker-react";
 import fondowpp from "../../fondowpp.png";
+import { useAuth } from "../../context/AuthContext";
+import { useSocket } from "../../hooks/useSocket";
 
 type User = {
   _id: string;
   name: string;
   email: string;
   publicKey?: string;
+};
+
+type Message = {
+  _id: string;
+  content: string;
+  emisor: {
+    _id: string;
+    name: string;
+  };
+  date: string;
 };
 
 type ChatContainerProps = {
@@ -17,72 +29,136 @@ type ChatContainerProps = {
   token: string;
 };
 
-const API_URL = import.meta.env.VITE_API_URL;
+export default function ChatContainer({ user, myPrivateKey }: ChatContainerProps) {
 
-export default function ChatContainer({ user, token }: ChatContainerProps) {
+  const { user: currentUser } = useAuth();
 
-  const [messages, setMessages] = useState<{ sender: "me" | "other"; text: string }[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const { sendMessage: emitMessage, onMessageReceived } = useSocket(currentUser?._id || null);
+
+  // RECIBIR MENSAJES SOCKET
+  useEffect(() => {
+
+    if (!onMessageReceived) return;
+
+    const unsubscribe = onMessageReceived((message: Message) => {
+
+      if (myPrivateKey && message.content) {
+
+        try {
+
+          const decoded = forge.util.decode64(message.content);
+          const decrypted = myPrivateKey.decrypt(decoded, "RSA-OAEP");
+          message.content = decrypted;
+
+        } catch (err) {
+
+          console.error("Error descifrando mensaje:", err);
+
+        }
+
+      }
+
+      setMessages(prev => [...prev, message]);
+
+    });
+
+    return unsubscribe;
+
+  }, [myPrivateKey, onMessageReceived]);
 
   // ENVIAR MENSAJE
-  const sendMessage = async () => {
+  const sendMessage = () => {
 
-    if (!user) return alert("Selecciona un usuario primero");
-    if (!input.trim()) return;
+    if (!input.trim() || !user?.publicKey || !currentUser) return;
+
+    setLoading(true);
 
     try {
 
-      let recipientPublicKeyPem = user.publicKey;
-
-      if (!recipientPublicKeyPem) {
-        const res = await fetch(`${API_URL}/api/user/publicKey/${user._id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const data = await res.json();
-        recipientPublicKeyPem = data.publicKey;
-      }
-
-      if (!recipientPublicKeyPem) return alert("El usuario no tiene publicKey");
-
-      const recipientPublicKey = forge.pki.publicKeyFromPem(recipientPublicKeyPem);
-
+      const recipientPublicKey = forge.pki.publicKeyFromPem(user.publicKey);
       const encrypted = recipientPublicKey.encrypt(input, "RSA-OAEP");
       const encoded = forge.util.encode64(encrypted);
 
-      setMessages(prev => [...prev, { sender: "me", text: input }]);
-      setInput("");
-
-      await fetch(`${API_URL}/api/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          recipientId: user._id,
-          message: encoded
-        })
+      // SOCKET
+      emitMessage({
+        emisor: currentUser._id,
+        receptor: user._id,
+        content: input,
+        encryptedContent: encoded
       });
 
+      // MOSTRAR LOCAL
+      setMessages(prev => [...prev, {
+        _id: Date.now().toString(),
+        content: input,
+        emisor: {
+          _id: currentUser._id,
+          name: currentUser.name
+        },
+        date: new Date().toISOString()
+      }]);
+
+      setInput("");
+
     } catch (err) {
+
       console.error("Error enviando mensaje:", err);
+
+    } finally {
+
+      setLoading(false);
+
     }
+
+  };
+
+  // ENTER
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+
+    if (e.key === "Enter" && !e.shiftKey) {
+
+      e.preventDefault();
+      sendMessage();
+
+    }
+
   };
 
   // EMOJIS
   const onEmojiClick = (emojiData: any) => {
+
     setInput(prev => prev + emojiData.emoji);
+
   };
 
+  if (!user) {
+
+    return (
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        height: "100%",
+        color: "#999"
+      }}>
+        Selecciona un usuario para chatear
+      </div>
+    );
+
+  }
+
   return (
+
     <div
       style={{
         backgroundImage: `url(${fondowpp})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
         display: "flex",
         flexDirection: "column",
         height: "100%",
@@ -91,7 +167,7 @@ export default function ChatContainer({ user, token }: ChatContainerProps) {
       }}
     >
 
-      {/* HEADER CHAT */}
+      {/* HEADER */}
       <div
         style={{
           padding: "12px 16px",
@@ -102,24 +178,42 @@ export default function ChatContainer({ user, token }: ChatContainerProps) {
           color: "#e9edef"
         }}
       >
-        {user ? `${user.name}` : "Selecciona un usuario para empezar"}
+        {user.name}
       </div>
 
       {/* MENSAJES */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "10px" }}>
-        {messages.map((m, idx) => (
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: "10px"
+        }}
+      >
+
+        {messages.length === 0 && (
+          <p style={{ textAlign: "center", color: "#bbb" }}>
+            No hay mensajes aún
+          </p>
+        )}
+
+        {messages.map((msg) => (
+
           <div
-            key={idx}
+            key={msg._id}
             style={{
               display: "flex",
-              justifyContent: m.sender === "me" ? "flex-end" : "flex-start",
-              marginBottom: "6px",
+              justifyContent:
+                msg.emisor._id === currentUser?._id ? "flex-end" : "flex-start",
+              marginBottom: "6px"
             }}
           >
 
             <div
               style={{
-                backgroundColor: m.sender === "me" ? "#005c4b" : "#202c33",
+                backgroundColor:
+                  msg.emisor._id === currentUser?._id
+                    ? "#005c4b"
+                    : "#202c33",
                 color: "#e9edef",
                 padding: "8px 12px",
                 borderRadius: "12px",
@@ -128,7 +222,20 @@ export default function ChatContainer({ user, token }: ChatContainerProps) {
                 boxShadow: "0 1px 2px rgba(0,0,0,0.35)"
               }}
             >
-              {m.text}
+
+              {msg.content}
+
+              <div
+                style={{
+                  fontSize: "11px",
+                  opacity: 0.7,
+                  marginTop: "4px",
+                  textAlign: "right"
+                }}
+              >
+                {new Date(msg.date).toLocaleTimeString()}
+              </div>
+
             </div>
 
           </div>
@@ -137,7 +244,7 @@ export default function ChatContainer({ user, token }: ChatContainerProps) {
 
       </div>
 
-      {/* INPUT */}
+      {/* INPUT WHATSAPP */}
       <div
         style={{
           display: "flex",
@@ -151,7 +258,7 @@ export default function ChatContainer({ user, token }: ChatContainerProps) {
         }}
       >
 
-        {/* BOTON EMOJI */}
+        {/* EMOJI BUTTON */}
         <button
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
           style={{
@@ -165,13 +272,13 @@ export default function ChatContainer({ user, token }: ChatContainerProps) {
           😊
         </button>
 
-        {/* PICKER */}
+        {/* EMOJI PICKER */}
         {showEmojiPicker && (
           <div
             style={{
               position: "absolute",
               bottom: "70px",
-              left: "0",
+              left: "10px",
               zIndex: 999
             }}
           >
@@ -183,8 +290,9 @@ export default function ChatContainer({ user, token }: ChatContainerProps) {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+          onKeyDown={handleKeyPress}
           placeholder="Escribe un mensaje..."
+          disabled={loading}
           style={{
             flex: 1,
             border: "1px solid #2a3942",
@@ -197,9 +305,10 @@ export default function ChatContainer({ user, token }: ChatContainerProps) {
           }}
         />
 
-        {/* BOTON ENVIAR */}
+        {/* SEND */}
         <button
           onClick={sendMessage}
+          disabled={loading || !input.trim()}
           style={{
             width: "38px",
             height: "38px",
@@ -220,5 +329,6 @@ export default function ChatContainer({ user, token }: ChatContainerProps) {
       </div>
 
     </div>
+
   );
 }
