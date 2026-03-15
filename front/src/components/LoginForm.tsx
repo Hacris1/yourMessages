@@ -1,7 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { jwtDecode } from "jwt-decode";
 import "../styles/LoginForm.css";
+
+interface JwtPayload {
+  id: string;
+  name: string;
+  email: string;
+  publicKey?: string;
+  iat?: number;
+  exp?: number;
+}
 
 export function LoginForm() {
   const API_URL = import.meta.env.VITE_API_URL;
@@ -37,11 +47,20 @@ export function LoginForm() {
 
       const data = await res.json();
       
-      // Guardar auth con los datos devueltos
-      setAuth(data.token, data.user, data.user.privateKey);
+      // Desencriptar el JWT token con tipado
+      const decoded = jwtDecode<JwtPayload>(data.token);
+      const user = {
+        _id: decoded.id,
+        name: decoded.name,
+        email: decoded.email,
+        publicKey: decoded.publicKey
+      };
+      // Guardar auth con los datos desencriptados
+      setAuth(data.token, user, decoded.publicKey || "");
       navigate("/chat");
     } catch (err) {
       setError("Error de conexión con el servidor");
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -86,10 +105,18 @@ export function LoginForm() {
       });
 
       const loginData = await loginRes.json();
-      setAuth(loginData.token, loginData.user, loginData.user.privateKey);
+      const decoded = jwtDecode<JwtPayload>(loginData.token);
+      const user = {
+        _id: decoded.id,
+        name: decoded.name,
+        email: decoded.email,
+        publicKey: decoded.publicKey
+      };
+      setAuth(loginData.token, user, decoded.publicKey || "");
       navigate("/chat");
     } catch (err) {
       setError("Error de conexión");
+      console.error(err);
     } finally {
       setLoading(false);
     }

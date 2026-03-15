@@ -4,7 +4,7 @@ export type User = {
   _id: string;
   name: string;
   email: string;
-  publicKey: string;
+  publicKey?: string;
 };
 
 type AuthContextType = {
