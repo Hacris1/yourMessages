@@ -1,24 +1,13 @@
-import { useState } from "react";
-//import { MessageBox } from 'react-chat-elements'
-import { UsersList } from "./app/posts/listUsers";
-import ChatContainer from "./app/posts/chatContainer";
 
-type User = {
-  id: string;
-  name: string;
-};
 
-export default function main() {
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./app";
 
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
 
-  return (
-    <div style={{ display: "flex", gap: "20px" }}>
 
-      <UsersList onSelect={setSelectedUser} />
-
-      <ChatContainer user={selectedUser} />
-
-    </div>
-  );
-}
