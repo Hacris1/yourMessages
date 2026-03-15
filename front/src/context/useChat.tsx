@@ -1,18 +1,13 @@
-import React, { useState } from "react";
-import { encryptMessage, decryptMessage } from "@/utils/useRSA";
+import { useState } from "react";
 
 export default function MessageInput({ onSend }: { 
   onSend: (text: string) => void }) {
   const [text, setText] = useState("");
-  
-  const aesKey = "clave entre usuarios";
 
   const handleSend = () => {
     if (!text) return;
 
-    const encrypted = encryptMessage(text, aesKey);
-
-    onSend(encrypted);
+    onSend(text);
 
     setText("");
   };

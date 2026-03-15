@@ -1,27 +1,31 @@
-import { useState } from "react";
-import { UsersList } from "./app/posts/listUsers";
-import ChatContainer from "./app/posts/chatContainer";
-
-type User = {
-  id: string;
-  name: string;
-};
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { LoginForm } from "./components/LoginForm";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import ChatPage from "./app/posts/ChatPage";
 
 export default function App() {
-
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-
   return (
-    <div style={{ display: "flex", gap: "20px", padding: "20px" }}>
+    <Router>
+      <Routes>
+        {/* Ruta de login - pública */}
+        <Route path="/login" element={<LoginForm />} />
 
-      <div>
-        <UsersList onSelect={setSelectedUser} />
-      </div>
+        {/* Ruta del chat - protegida */}
+        <Route
+          path="/chat"
+          element={
+            <ProtectedRoute>
+              <ChatPage />
+            </ProtectedRoute>
+          }
+        />
 
-      <div style={{ flex: 1 }}>
-        <ChatContainer user={selectedUser} />
-      </div>
+        {/* Redirigir la raíz al chat */}
+        <Route path="/" element={<Navigate to="/chat" replace />} />
 
-    </div>
+        {/* Cualquier otra ruta redirige a chat */}
+        <Route path="*" element={<Navigate to="/chat" replace />} />
+      </Routes>
+    </Router>
   );
 }
