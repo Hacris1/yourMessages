@@ -19,6 +19,7 @@ type Message = {
     _id: string;
     name: string;
   };
+  receptor?: string | { _id: string };
   date: string;
 };
 
@@ -33,12 +34,19 @@ export default function ChatContainer({ user, myPrivateKey }: ChatContainerProps
 
   const { user: currentUser } = useAuth();
 
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messagesByChat, setMessagesByChat] = useState<Record<string, Message[]>>({});
   const [input, setInput] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const { sendMessage: emitMessage, onMessageReceived } = useSocket(currentUser?._id || null);
+
+  const getReceptorId = (message: Message) => {
+    if (!message.receptor) return null;
+    return typeof message.receptor === "string"
+      ? message.receptor
+      : message.receptor._id;
+  };
 
   // RECIBIR MENSAJES SOCKET
   useEffect(() => {
@@ -47,13 +55,17 @@ export default function ChatContainer({ user, myPrivateKey }: ChatContainerProps
 
     const unsubscribe = onMessageReceived((message: Message) => {
 
-      if (myPrivateKey && message.content) {
+      const receptorId = getReceptorId(message);
+
+      const processedMessage: Message = { ...message };
+
+      if (myPrivateKey && processedMessage.content && receptorId === currentUser?._id) {
 
         try {
 
-          const decoded = forge.util.decode64(message.content);
+          const decoded = forge.util.decode64(processedMessage.content);
           const decrypted = myPrivateKey.decrypt(decoded, "RSA-OAEP");
-          message.content = decrypted;
+          processedMessage.content = decrypted;
 
         } catch (err) {
 
@@ -63,7 +75,16 @@ export default function ChatContainer({ user, myPrivateKey }: ChatContainerProps
 
       }
 
-      setMessages(prev => [...prev, message]);
+      const chatUserId = processedMessage.emisor._id === currentUser?._id
+        ? receptorId
+        : processedMessage.emisor._id;
+
+      if (!chatUserId) return;
+
+      setMessagesByChat(prev => ({
+        ...prev,
+        [chatUserId]: [...(prev[chatUserId] || []), processedMessage]
+      }));
 
     });
 
@@ -93,15 +114,19 @@ export default function ChatContainer({ user, myPrivateKey }: ChatContainerProps
       });
 
       // MOSTRAR LOCAL
-      setMessages(prev => [...prev, {
+      setMessagesByChat(prev => ({
+        ...prev,
+        [user._id]: [...(prev[user._id] || []), {
         _id: Date.now().toString(),
         content: input,
         emisor: {
           _id: currentUser._id,
           name: currentUser.name
         },
+        receptor: user._id,
         date: new Date().toISOString()
-      }]);
+      }]
+      }));
 
       setInput("");
 
@@ -151,6 +176,8 @@ export default function ChatContainer({ user, myPrivateKey }: ChatContainerProps
     );
 
   }
+
+  const messages = messagesByChat[user._id] || [];
 
   return (
 
