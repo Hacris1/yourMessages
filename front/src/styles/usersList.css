@@ -1,0 +1,133 @@
+.users-list {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #111b21;
+  border-radius: 14px;
+  border: 1px solid #1f2c34;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.users-list__header {
+  margin: 0;
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #e9edef;
+  border-bottom: 1px solid #1f2c34;
+  background: #202c33;
+}
+
+.users-list__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  background: #111b21;
+}
+
+.users-list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.users-list li + li {
+  margin-top: 8px;
+}
+
+.user-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #1f2c34;
+  background: #111b21;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.user-item:hover {
+  background: #202c33;
+  border-color: #2a3942;
+}
+
+.user-item--active {
+  background: #2a3942;
+  border-color: #25d366;
+}
+
+.user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #25d366, #128c7e);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.user-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.user-info strong {
+  color: #e9edef;
+  font-size: 14px;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-info small {
+  color: #8696a0;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.users-list__status,
+.no-users,
+.error {
+  margin: 10px 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.users-list__status,
+.no-users {
+  background: #202c33;
+  color: #8696a0;
+}
+
+.error {
+  background: rgba(220, 53, 69, 0.15);
+  color: #ff9aa2;
+}
+
+.users-list__retry {
+  margin: 0 4px 8px;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 10px;
+  background: #25d366;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.users-list__retry:hover {
+  filter: brightness(0.95);
+}

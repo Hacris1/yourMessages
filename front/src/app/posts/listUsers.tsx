@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { buildApiUrl } from "../../utils/apiUrl";
+import "../../styles/usersList.css";
 
 interface User {
   _id: string;
@@ -18,6 +19,16 @@ export function UsersList({
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() || "")
+      .join("");
+  };
 
   useEffect(() => {
     if (!token || !currentUser) return;
@@ -59,7 +70,10 @@ export function UsersList({
   if (loading) {
     return (
       <div className="users-list">
-        <p>Cargando usuarios...</p>
+        <h4 className="users-list__header">Usuarios disponibles</h4>
+        <div className="users-list__body">
+          <p className="users-list__status">Cargando usuarios...</p>
+        </div>
       </div>
     );
   }
@@ -67,34 +81,43 @@ export function UsersList({
   if (error) {
     return (
       <div className="users-list">
-        <p className="error">{error}</p>
-        <button onClick={fetchUsers}>Reintentar</button>
+        <h4 className="users-list__header">Usuarios disponibles</h4>
+        <div className="users-list__body">
+          <p className="error">{error}</p>
+          <button className="users-list__retry" onClick={fetchUsers}>Reintentar</button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="users-list">
-      <h4>Usuarios disponibles</h4>
-      {users.length === 0 ? (
-        <p className="no-users">No hay otros usuarios disponibles</p>
-      ) : (
-        <ul>
-          {users.map((user) => (
-            <li key={user._id}>
-              <button
-                className="user-item"
-                onClick={() => onSelect(user)}
-              >
-                <div className="user-info">
-                  <strong>{user.name}</strong>
-                  <small>{user.email}</small>
-                </div>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      <h4 className="users-list__header">Usuarios disponibles</h4>
+      <div className="users-list__body">
+        {users.length === 0 ? (
+          <p className="no-users">No hay otros usuarios disponibles</p>
+        ) : (
+          <ul>
+            {users.map((user) => (
+              <li key={user._id}>
+                <button
+                  className={`user-item ${selectedUserId === user._id ? "user-item--active" : ""}`.trim()}
+                  onClick={() => {
+                    setSelectedUserId(user._id);
+                    onSelect(user);
+                  }}
+                >
+                  <span className="user-avatar">{getInitials(user.name)}</span>
+                  <div className="user-info">
+                    <strong>{user.name}</strong>
+                    <small>{user.email}</small>
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

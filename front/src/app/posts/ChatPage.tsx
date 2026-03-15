@@ -68,24 +68,24 @@ export default function ChatPage() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", backgroundColor: "#0b141a", color: "#e9edef" }}>
       {/* Header */}
       <div style={{
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
         padding: "10px 20px",
-        backgroundColor: "#f0f0f0",
-        borderBottom: "1px solid #ddd"
+        backgroundColor: "#202c33",
+        borderBottom: "1px solid #1f2c34"
       }}>
-        <h1>Your Messages</h1>
+        <h1 style={{ margin: 0, fontSize: "22px", color: "#e9edef" }}>Your Messages</h1>
         <button 
           onClick={handleLogout}
           style={{
             padding: "8px 16px",
-            backgroundColor: "#dc3545",
+            backgroundColor: "#2a3942",
             color: "white",
-            border: "none",
+            border: "1px solid #3b4a54",
             borderRadius: "5px",
             cursor: "pointer"
           }}
@@ -95,16 +95,18 @@ export default function ChatPage() {
       </div>
 
       {/* Contenido */}
-      <div style={{ display: "flex", gap: "20px", padding: "20px", flex: 1, overflow: "hidden" }}>
-        <div style={{ width: "300px", borderRight: "1px solid #ddd", overflowY: "auto" }}>
+      <div style={{ display: "flex", gap: "20px", padding: "20px", flex: 1, overflow: "hidden", backgroundColor: "#0b141a" }}>
+        <div style={{ width: "300px", borderRight: "1px solid #1f2c34", overflowY: "auto" }}>
           <UsersList onSelect={setSelectedUser} />
         </div>
 
+        <div style={{ flex: 1, minWidth: 0, display: "flex" }}>
           <ChatContainer 
             user={selectedUser} 
             myPrivateKey={privateKey} 
             myPublicKey={publicKey} 
             token={token || ""}/>
+        </div>
         </div>
       </div>
 
