@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import forge from "node-forge";
 
 type User = {
@@ -12,27 +12,58 @@ type ChatContainerProps = {
   user: User | null;
   myPrivateKey: forge.pki.rsa.PrivateKey | null;
   myPublicKey: forge.pki.rsa.PublicKey | null;
+  token: string; // JWT para requests
 };
 
-export default function ChatContainer({ user, myPrivateKey }: ChatContainerProps) {
+const API_URL = import.meta.env.VITE_API_URL;
+
+export default function ChatContainer({ user, myPrivateKey, token }: ChatContainerProps) {
   const [messages, setMessages] = useState<{ sender: "me" | "other"; text: string }[]>([]);
   const [input, setInput] = useState("");
 
-  const sendMessage = () => {
-    if (!user?.publicKey) return alert("Selecciona un usuario con clave pública");
+  // Función para enviar mensaje cifrado
+  const sendMessage = async () => {
+    if (!user) return alert("Selecciona un usuario primero");
 
-    const recipientPublicKey = forge.pki.publicKeyFromPem(user.publicKey);
+    try {
+      // Obtener la publicKey del receptor desde backend
+      let recipientPublicKeyPem = user.publicKey;
+      if (!recipientPublicKeyPem) {
+        const res = await fetch(`${API_URL}/api/user/getKey?userId=${user._id}`, {
+          headers: { "Authorization": `Bearer ${token}` },
+        });
+        const data = await res.json();
+        recipientPublicKeyPem = data.publicKey;
+      }
 
-    // Cifrar con la llave pública del otro usuario
-    const encrypted = recipientPublicKey.encrypt(input, "RSA-OAEP");
-    const encoded = forge.util.encode64(encrypted);
+      if (!recipientPublicKeyPem) return alert("El usuario no tiene publicKey");
 
-    setMessages(prev => [...prev, { sender: "me", text: encoded }]);
-    setInput("");
+      const recipientPublicKey = forge.pki.publicKeyFromPem(recipientPublicKeyPem);
 
+      // Cifrar mensaje
+      const encrypted = recipientPublicKey.encrypt(input, "RSA-OAEP");
+      const encoded = forge.util.encode64(encrypted);
 
+      // Mostrar en UI
+      setMessages(prev => [...prev, { sender: "me", text: input }]);
+      setInput("");
+
+      // Enviar al backend
+      await fetch(`${API_URL}/api/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ recipientId: user._id, message: encoded })
+      });
+
+    } catch (err) {
+      console.error("Error enviando mensaje:", err);
+    }
   };
 
+  // Función para recibir mensaje cifrado
   const receiveMessage = (cipherText: string) => {
     if (!myPrivateKey) return;
 
