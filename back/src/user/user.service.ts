@@ -102,6 +102,23 @@ class UserService {
         }
     }
 
+    public async getPublicKey (userId: string) {
+        try {
+            const user : IUser | null = await this.getById(userId);
+            if (!user) {
+                throw new Error("User not found");
+            }
+
+            return user.publicKey;
+
+        } catch (error) {
+            if (error instanceof ReferenceError) {
+                throw new Error("User not found");
+            }
+            throw error;
+        }
+    }
+
 }
 
 

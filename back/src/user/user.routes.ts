@@ -14,3 +14,7 @@ router.post("/login", userController.login);
 router.delete("/:id", userController.delete);
 
 router.get("/", userController.getAll);
+
+router.post("/updatePublickey", userController.sendPublicKey);
+
+router.get("/publicKey/:id", userController.getPublicKey);
