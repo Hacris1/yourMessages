@@ -1,5 +1,6 @@
 import { useState } from "react";
 import forge from "node-forge";
+import { buildApiUrl } from "../../utils/apiUrl";
 
 type User = {
   _id: string;
@@ -15,9 +16,7 @@ type ChatContainerProps = {
   token: string; // JWT para requests
 };
 
-const API_URL = import.meta.env.VITE_API_URL;
-
-export default function ChatContainer({ user, myPrivateKey, token }: ChatContainerProps) {
+export default function ChatContainer({ user, token }: ChatContainerProps) {
   const [messages, setMessages] = useState<{ sender: "me" | "other"; text: string }[]>([]);
   const [input, setInput] = useState("");
 
@@ -29,9 +28,13 @@ export default function ChatContainer({ user, myPrivateKey, token }: ChatContain
       // Obtener la publicKey del receptor desde backend
       let recipientPublicKeyPem = user.publicKey;
       if (!recipientPublicKeyPem) {
-        const res = await fetch(`${API_URL}/api/user/getKey?userId=${user._id}`, {
+        const res = await fetch(buildApiUrl(`/api/user/publicKey/${user._id}`), {
           headers: { "Authorization": `Bearer ${token}` },
         });
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData?.error || "No se pudo obtener la publicKey del usuario");
+        }
         const data = await res.json();
         recipientPublicKeyPem = data.publicKey;
       }
@@ -49,7 +52,7 @@ export default function ChatContainer({ user, myPrivateKey, token }: ChatContain
       setInput("");
 
       // Enviar al backend
-      await fetch(`${API_URL}/api/messages`, {
+      await fetch(buildApiUrl("/api/messages"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -60,25 +63,14 @@ export default function ChatContainer({ user, myPrivateKey, token }: ChatContain
 
     } catch (err) {
       console.error("Error enviando mensaje:", err);
+      alert("No se pudo enviar el mensaje. Verifica que ambos usuarios hayan iniciado sesión en el chat para registrar su publicKey.");
     }
   };
 
-  // Función para recibir mensaje cifrado
-  const receiveMessage = (cipherText: string) => {
-    if (!myPrivateKey) return;
-
-    try {
-      const decoded = forge.util.decode64(cipherText);
-      const decrypted = myPrivateKey.decrypt(decoded, "RSA-OAEP");
-
-      setMessages(prev => [...prev, { sender: "other", text: decrypted }]);
-    } catch (err) {
-      console.error("Error descifrando:", err);
-    }
-  };
+  
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div style={{ display: "flex",flexDirection: "column", height: "100%" }}>
       <div style={{ flex: 1, overflowY: "auto", padding: "10px" }}>
         {messages.map((m, idx) => (
           <div key={idx} style={{ textAlign: m.sender === "me" ? "right" : "left" }}>

@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useRSA } from "../../hooks/useRSA";
 import forge from "node-forge";
 import {jwtDecode} from "jwt-decode";
+import { buildApiUrl } from "../../utils/apiUrl";
 
 type TokenPayload = {
   id: string;
@@ -21,8 +22,6 @@ type User = {
   email: string;
   publicKey?: string;
 };
-
-const API_URL = import.meta.env.VITE_API_URL;
 
 export default function ChatPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -43,16 +42,22 @@ export default function ChatPage() {
     if (publicKey && currentUserId) {
       const publicKeyPem = forge.pki.publicKeyToPem(publicKey);
 
-      fetch(`${API_URL}/api/user/updateKey`, {
+      fetch(buildApiUrl("/api/user/updatePublickey"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({ publicKey: publicKeyPem })
+        body: JSON.stringify({ userId: currentUserId, publicKey: publicKeyPem })
       })
-      .then(res => res.json())
-      .then(data => console.log("Public key enviada", data))
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data?.error || "No se pudo guardar la public key");
+        }
+        return data;
+      })
+      .then(data => console.log("Public key enviada:", data?.message || "ok"))
       .catch(err => console.error("Error enviando public key", err));
     }
   }, [publicKey, currentUserId, token]);

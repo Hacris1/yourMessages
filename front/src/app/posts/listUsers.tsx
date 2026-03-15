@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { buildApiUrl } from "../../utils/apiUrl";
 
 interface User {
   _id: string;
@@ -17,7 +18,6 @@ export function UsersList({
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     if (!token || !currentUser) return;
@@ -32,7 +32,7 @@ export function UsersList({
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_URL}api/user`, {
+      const response = await fetch(buildApiUrl("/api/user"), {
         headers: {
           Authorization: `Bearer ${token}`
         }

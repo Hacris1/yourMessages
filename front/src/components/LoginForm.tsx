@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { jwtDecode } from "jwt-decode";
+import { buildApiUrl } from "../utils/apiUrl";
 import "../styles/LoginForm.css";
 
 interface JwtPayload {
@@ -14,7 +15,6 @@ interface JwtPayload {
 }
 
 export function LoginForm() {
-  const API_URL = import.meta.env.VITE_API_URL;
   const navigate = useNavigate();
   const { setAuth } = useAuth();
 
@@ -31,7 +31,7 @@ export function LoginForm() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_URL}api/user/login`, {
+      const res = await fetch(buildApiUrl("/api/user/login"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -47,9 +47,6 @@ export function LoginForm() {
 
       const data = await res.json();
       
-      console.log("Login exitoso:", data);
-      setAuth(data.token, data.user, data.user.privateKey);
-      console.log("Token almacenado:", data.token);
       // Desencriptar el JWT token con tipado
       const decoded = jwtDecode<JwtPayload>(data.token);
       const user = {
@@ -81,7 +78,7 @@ export function LoginForm() {
     }
 
     try {
-      const res = await fetch(`${API_URL}api/user/`, {
+      const res = await fetch(buildApiUrl("/api/user/"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -99,7 +96,7 @@ export function LoginForm() {
         return;
       }
 
-      const loginRes = await fetch(`${API_URL}api/user/login`, {
+      const loginRes = await fetch(buildApiUrl("/api/user/login"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
