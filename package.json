@@ -1,0 +1,36 @@
+{
+  "name": "yourmessanges",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/Hacris1/yourMessanges#readme",
+  "bugs": {
+    "url": "https://github.com/Hacris1/yourMessanges/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hacris1/yourMessanges.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.2.1",
+    "express": "^5.2.1",
+    "express-validator": "^7.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.17.1",
+    "node-rsa": "^1.1.1",
+    "react": "^19.2.4"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node-rsa": "^1.1.4",
+    "typescript": "^5.9.3"
+  }
+}
