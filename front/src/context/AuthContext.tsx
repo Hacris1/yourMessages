@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 
 export type User = {
   _id: string;
@@ -11,30 +11,35 @@ type AuthContextType = {
   token: string | null;
   user: User | null;
   privateKey: string | null;
+  isLoading: boolean;
   setAuth: (token: string, user: User, privateKey: string) => void;
   logout: () => void;
-  isLoading: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [privateKey, setPrivateKey] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const savedToken = localStorage.getItem("token");
-    const savedUser = localStorage.getItem("user");
-    const savedPrivateKey = localStorage.getItem("privateKey");
+    try {
+      const savedToken = localStorage.getItem("token");
+      const savedUser = localStorage.getItem("user");
+      const savedPrivateKey = localStorage.getItem("privateKey");
 
-    if (savedToken && savedUser && savedPrivateKey) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
-      setPrivateKey(savedPrivateKey);
+      if (savedToken && savedUser && savedPrivateKey) {
+        setToken(savedToken);
+        setUser(JSON.parse(savedUser));
+        setPrivateKey(savedPrivateKey);
+      }
+    } catch (error) {
+      console.error("Error loading auth from localStorage:", error);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   const setAuth = (newToken: string, newUser: User, newPrivateKey: string) => {
@@ -57,17 +62,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.removeItem("privateKey");
   };
 
+  const value: AuthContextType = {
+    token,
+    user,
+    privateKey,
+    isLoading,
+    setAuth,
+    logout
+  };
+
   return (
-    <AuthContext.Provider value={{ token, user, privateKey, setAuth, logout, isLoading }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => {
+export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth debe ser usado dentro de AuthProvider");
+  if (!context) {
+    throw new Error("useAuth debe ser usado dentro de un AuthProvider");
+  }
   return context;
-};
+}
 
 

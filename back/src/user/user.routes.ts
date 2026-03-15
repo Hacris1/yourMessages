@@ -12,3 +12,5 @@ router.post("/", userController.create);
 router.post("/login", userController.login);
 
 router.delete("/:id", userController.delete);
+
+router.get("/", userController.getAll);

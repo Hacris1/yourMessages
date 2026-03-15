@@ -63,6 +63,15 @@ class UserController {
         }
     }
 
+    public async getAll (req: Request, res: Response) {
+        try {
+            const users = await userServices.getAll();
+            res.json(users);
+        } catch (error) {
+            res.status(500).json({ error: 'Error fetching users' });
+        }
+    }
+
 }
 
 export const userController = new UserController();
