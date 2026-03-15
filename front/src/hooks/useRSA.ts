@@ -3,25 +3,31 @@ import { useState, useEffect } from "react";
 import forge from "node-forge";
 
 export function useRSA() {
-  const [publicKey, setPublicKey] = useState<forge.pki.PublicKey | null>(null);
-  const [privateKey, setPrivateKey] = useState<forge.pki.PrivateKey | null>(null);
+  const [publicKey, setPublicKey] = useState<forge.pki.rsa.PublicKey | null>(null);
+  const [privateKey, setPrivateKey] = useState<forge.pki.rsa.PrivateKey | null>(null);
+
 
   useEffect(() => {
-
     const keypair = forge.pki.rsa.generateKeyPair({ bits: 2048 });
+
     setPublicKey(keypair.publicKey);
     setPrivateKey(keypair.privateKey);
   }, []);
 
   //cifrar  clave publica
-  const encryptMessage = (message: string, pubKey: forge.pki.PublicKey) => {
-    return pubKey.encrypt(message, "RSA-OAEP");
+  const encryptMessage = (message: string) => {
+    if (!publicKey) throw new Error("No hay clave publica");
+
+    const encrypted = publicKey.encrypt(message, "RSA-OAEP");
+    return forge.util.encode64(encrypted);
   };
 
   //descifrar  con clave privada
   const decryptMessage = (cipherText: string) => {
     if (!privateKey) throw new Error("No hay clave privada");
-    return privateKey.decrypt(cipherText, "RSA-OAEP");
+
+    const decoded = forge.util.decode64(cipherText);
+    return privateKey.decrypt(decoded, "RSA-OAEP");
   };
 
   return { publicKey, privateKey, encryptMessage, decryptMessage };

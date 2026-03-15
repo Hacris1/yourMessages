@@ -1,13 +1,11 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
-type LoginFormProps = {
-  onLoginSuccess: (token: string) => void;
-};
-
-export function LoginForm({ onLoginSuccess }: LoginFormProps) {
+export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const { setToken } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +24,7 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
       }
 
       const data = await res.json();
-      onLoginSuccess(data.token); 
+      setToken(data.token);
     } catch (err) {
       setError("Error de conexión");
     }

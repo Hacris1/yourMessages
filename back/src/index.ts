@@ -1,14 +1,14 @@
-import express, { Express, Request, Response } from 'express';
-
-import { db } from './config/dbConnection';
-import { router as messageRouter } from './message/message.route';
-import { router as userRouter } from './user/user.route';
+import type { Express, Request, Response } from 'express';
+import express from 'express';
+import { db } from './config/dbConnection.js';
+import { router as messageRouter } from './message/message.routes.js';
+import { router as userRouter } from './user/user.routes.js';
 
 const app: Express = express();
 
 process.loadEnvFile();
 
-const port = process.env.APP_PORT || 3000;
+const port = process.env.APP_PORT || 4000;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

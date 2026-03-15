@@ -83,6 +83,26 @@ class UserService {
         return UserModel.find();
     }
 
+    public async sendPublicKey (userId: string, publicKey: string) {
+        try {
+            const user : IUser | null = await this.getById(userId);
+            if (!user) {
+                throw new Error("User not found");
+            }
+
+            user.publicKey = publicKey;
+            await user.save();
+
+        } catch (error) {
+            if (error instanceof ReferenceError) {
+                throw new Error("User not found");
+            }
+            throw error;
+        }
+    }
+
 }
+
+
 
 export const userServices = new UserService();
