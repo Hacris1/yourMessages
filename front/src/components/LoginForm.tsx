@@ -81,7 +81,7 @@ export function LoginForm() {
       
       // Sincronizar clave pública con servidor
       try {
-        const updateRes = await fetch(buildApiUrl("/api/user/updatePublickey"), {
+        await fetch(buildApiUrl("/api/user/updatePublickey"), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -171,7 +171,7 @@ export function LoginForm() {
       
       // Sincronizar clave pública con servidor
       try {
-        const updateRes = await fetch(buildApiUrl("/api/user/updatePublickey"), {
+        await fetch(buildApiUrl("/api/user/updatePublickey"), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

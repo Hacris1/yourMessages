@@ -16,7 +16,6 @@ export function useRSA() {
       publicKeyPem = localStorage.getItem("persistedPublicKeyPem");
       
       if (privateKeyPem && publicKeyPem) {
-        // Copiar a sessionStorage también
         sessionStorage.setItem("derivedPrivateKeyPem", privateKeyPem);
         sessionStorage.setItem("derivedPublicKeyPem", publicKeyPem);
       }

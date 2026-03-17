@@ -4,18 +4,7 @@ import ChatContainer from "./chatContainer";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useRSA } from "../../hooks/useRSA";
-import forge from "node-forge";
-import { jwtDecode } from "jwt-decode";
-import { buildApiUrl } from "../../utils/apiUrl";
 import { AccountSettingsModal } from "../../components/AccountSettingsModal";
-
-type TokenPayload = {
-  id: string;
-  name: string;
-  email: string;
-  publicKey: string;
-  exp: number;
-};
 
 type User = {
   _id: string;
@@ -28,7 +17,7 @@ export default function ChatPage() {
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showAccountSettings, setShowAccountSettings] = useState(false);
-  const { logout, token, user } = useAuth(); 
+  const { logout, user } = useAuth(); 
   const navigate = useNavigate();
 
   const { publicKey, privateKey } = useRSA();

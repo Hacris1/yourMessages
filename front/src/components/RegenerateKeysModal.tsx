@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import forge from "node-forge";
+import { useState } from "react";
 import { useRSA } from "../hooks/useRSA";
 import { useAuth } from "../context/AuthContext";
 import { buildApiUrl } from "../utils/apiUrl";
