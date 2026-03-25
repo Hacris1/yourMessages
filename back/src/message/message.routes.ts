@@ -12,3 +12,7 @@ router.put("/:id", messageController.update);
 router.post("/", messageController.create);
 
 router.delete("/:id", messageController.delete);
+
+router.post("/:id/decrypt", messageController.decryptMessage);
+
+router.post("/:id/verify-signature", messageController.verifySignature);

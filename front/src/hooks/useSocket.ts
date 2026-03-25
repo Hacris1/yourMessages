@@ -40,6 +40,7 @@ export const useSocket = (userId: string | null) => {
     receptor: string;
     content: string;
     encryptedContent: string;
+    encryptedContentForSender: string;
   }) => {
     if (socketRef.current?.connected) {
       socketRef.current.emit('send-message', data);

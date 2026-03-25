@@ -6,7 +6,23 @@ class MessageController {
 
     public async create (req: Request, res: Response) {
         try {
-            const message = await messageServices.create(req.body);
+            const { emisor, receptor, content, encryptedContent, encryptedContentForSender, signature } = req.body;
+            const messageData = {
+                content,
+                emisor,
+                receptor,
+                date: new Date(),
+                encryptedContent,
+                encryptedContentForSender,
+                signature: signature || '',
+                messageHash: ''
+            };
+            const message = await messageServices.createFromSocket(
+                messageData,
+                encryptedContent,
+                encryptedContentForSender,
+                signature
+            );
             res.status(201).json(message);
         } catch (error) {
             res.status(500).json({ error: 'Error creating message' });
@@ -70,6 +86,36 @@ class MessageController {
             res.json(messages);
         } catch (error) {
             res.status(500).json({ error: 'Error fetching conversation' });
+        }
+    }
+
+    public async decryptMessage (req: Request, res: Response) {
+        const id: string = req.params.id as string || "";
+        const { recipientPrivateKey, senderPublicKey } = req.body;
+        try {
+            if (!recipientPrivateKey) {
+                return res.status(400).json({ error: 'recipientPrivateKey is required' });
+            }
+
+            const decryptedMessage = await messageServices.getMessageDecrypted(id, recipientPrivateKey, senderPublicKey);
+            res.json(decryptedMessage);
+        } catch (error) {
+            res.status(500).json({ error: 'Error decrypting message' });
+        }
+    }
+
+    public async verifySignature (req: Request, res: Response) {
+        const id: string = req.params.id as string || "";
+        const { senderPublicKey } = req.body;
+        try {
+            if (!senderPublicKey) {
+                return res.status(400).json({ error: 'senderPublicKey is required' });
+            }
+
+            const isValid = await messageServices.verifyMessageSignature(id, senderPublicKey);
+            res.json({ messageId: id, signatureValid: isValid });
+        } catch (error) {
+            res.status(500).json({ error: 'Error verifying signature' });
         }
     }
 

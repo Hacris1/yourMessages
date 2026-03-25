@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import forge from "node-forge";
 import EmojiPicker from "emoji-picker-react";
 import fondowpp from "../../fondowpp.png";
@@ -17,6 +17,8 @@ type User = {
 type Message = {
   _id: string;
   content: string;
+  encryptedContent?: string;
+  encryptedContentForSender?: string;
   emisor: {
     _id: string;
     name: string;
@@ -34,10 +36,10 @@ export default function ChatContainer({ user }: { user: User | null }) {
   const [input, setInput] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { sendMessage: emitMessage, onMessageReceived } = useSocket(currentUser?._id || null);
 
-  // Sincronizar clave pública con el servidor
   useEffect(() => {
     if (!token || !currentUser || !myPublicKey) return;
 
@@ -80,6 +82,10 @@ export default function ChatContainer({ user }: { user: User | null }) {
   }, [user?._id]); 
 
   useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messagesByChat, user?._id]); 
+
+  useEffect(() => {
     // Private key watcher
   }, [myPrivateKey]);
 
@@ -117,24 +123,24 @@ export default function ChatContainer({ user }: { user: User | null }) {
         if (response.ok) {
           const backendMessages = await response.json();
           
-          const otherUserMessages = backendMessages.filter(
-            (msg: Message) => msg.emisor._id === user._id
-          );
+          const processedMessages = backendMessages.map((msg: any) => {
+            try {
+              
+              const isRecipient = currentUser._id === msg.receptor?._id || currentUser._id === msg.receptor;
+              const encryptedToUse = isRecipient ? msg.encryptedContent : msg.encryptedContentForSender;
 
-          const processedMessages = otherUserMessages.map((msg: Message) => {
-            if (msg.content) {
-              try {
-                const decrypted = decryptMessageWithHistory(msg.content);
+              if (encryptedToUse) {
+                const decrypted = decryptMessageWithHistory(encryptedToUse);
                 if (decrypted) {
                   msg.content = decrypted;
                 } else {
                   msg.content = "⏳ No se pudo desencriptar este mensaje";
                 }
-              } catch (err) {
-                console.error("Error descifrando mensaje recibido:", err);
+              } else if (!myPrivateKey) {
                 msg.content = "⏳ Aún no se han podido cargar estos mensajes";
               }
-            } else if (!myPrivateKey) {
+            } catch (err) {
+              console.error("Error descifrando mensaje:", err);
               msg.content = "⏳ Aún no se han podido cargar estos mensajes";
             }
 
@@ -144,19 +150,9 @@ export default function ChatContainer({ user }: { user: User | null }) {
           allMessages = processedMessages;
         }
 
-        const sentMessagesKey = `sent_messages_${currentUser._id}_${user._id}`;
-        const sentMessages = JSON.parse(localStorage.getItem(sentMessagesKey) || "[]");
-        
-        const backendMessageIds = new Set(allMessages.map((m: Message) => m._id));
-        const uniqueSentMessages = sentMessages.filter((msg: Message) => !backendMessageIds.has(msg._id));
-        
-        const combined = [...allMessages, ...uniqueSentMessages].sort((a, b) => 
-          new Date(a.date).getTime() - new Date(b.date).getTime()
-        );
-
         setMessagesByChat(prev => ({
           ...prev,
-          [user._id]: combined
+          [user._id]: allMessages
         }));
       } catch (err) {
         console.error("Error cargando mensajes:", err);
@@ -171,22 +167,23 @@ export default function ChatContainer({ user }: { user: User | null }) {
 
     if (!onMessageReceived || !user) return;
 
-    const unsubscribe = onMessageReceived((message: Message) => {
+    const unsubscribe = onMessageReceived((message: any) => {
       if (message.emisor._id === user._id) {
-        if (message.content) {
-          try {
-            const decrypted = decryptMessageWithHistory(message.content);
+        try {
+
+          if (message.encryptedContent) {
+            const decrypted = decryptMessageWithHistory(message.encryptedContent);
             
             if (decrypted) {
               message.content = decrypted;
             } else {
               message.content = "⏳ No se pudo desencriptar este mensaje";
             }
-          } catch (err) {
-            console.error("Error descifrando mensaje por socket:", err);
+          } else {
             message.content = "⏳ Aún no se han podido cargar estos mensajes";
           }
-        } else {
+        } catch (err) {
+          console.error("Error descifrando mensaje por socket:", err);
           message.content = "⏳ Aún no se han podido cargar estos mensajes";
         }
 
@@ -203,27 +200,40 @@ export default function ChatContainer({ user }: { user: User | null }) {
 
   // ENVIAR MENSAJE
   const sendMessage = () => {
-    if (!input.trim() || !user?.publicKey || !currentUser) return;
+    if (!input.trim() || !user?.publicKey || !currentUser || !myPublicKey) return;
 
     setLoading(true);
 
     try {
-      const recipientPublicKey = forge.pki.publicKeyFromPem(user.publicKey);
       
-      const encrypted = recipientPublicKey.encrypt(input, "RSA-OAEP");
-      const encoded = forge.util.encode64(encrypted);
+      const recipientPublicKey = forge.pki.publicKeyFromPem(user.publicKey);
+      const encryptedForRecipient = recipientPublicKey.encrypt(input, "RSA-OAEP");
+      const encodedForRecipient = forge.util.encode64(encryptedForRecipient);
 
-      // SOCKET
+      
+      const myPublicKeyPem = sessionStorage.getItem("derivedPublicKeyPem") || 
+                            localStorage.getItem("persistedPublicKeyPem");
+      
+      if (!myPublicKeyPem) {
+        throw new Error("No se pudo obtener tu clave pública");
+      }
+
+      const myPublicKeyObj = forge.pki.publicKeyFromPem(myPublicKeyPem);
+      const encryptedForSender = myPublicKeyObj.encrypt(input, "RSA-OAEP");
+      const encodedForSender = forge.util.encode64(encryptedForSender);
+
+      
       emitMessage({
         emisor: currentUser._id,
         receptor: user._id,
         content: input,
-        encryptedContent: encoded
+        encryptedContent: encodedForRecipient,
+        encryptedContentForSender: encodedForSender
       });
 
-      // Guardar mensaje localmente en localStorage
-      const sentMessage = {
-        _id: Date.now().toString(),
+      
+      const optimisticMessage = {
+        _id: `temp-${Date.now()}`,
         content: input,
         emisor: {
           _id: currentUser._id,
@@ -236,13 +246,8 @@ export default function ChatContainer({ user }: { user: User | null }) {
       if (user._id) {
         setMessagesByChat(prev => ({
           ...prev,
-          [user._id]: [...(prev[user._id] || []), sentMessage]
+          [user._id]: [...(prev[user._id] || []), optimisticMessage]
         }));
-
-        const sentMessagesKey = `sent_messages_${currentUser._id}_${user._id}`;
-        const savedMessages = JSON.parse(localStorage.getItem(sentMessagesKey) || "[]");
-        savedMessages.push(sentMessage);
-        localStorage.setItem(sentMessagesKey, JSON.stringify(savedMessages));
       }
 
       setInput("");
@@ -384,6 +389,8 @@ export default function ChatContainer({ user }: { user: User | null }) {
           </div>
 
         ))}
+
+        <div ref={messagesEndRef} />
 
       </div>
 

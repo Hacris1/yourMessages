@@ -7,7 +7,11 @@ export interface IMessage extends MessageInput, mongoose.Document {
 }
 
 const messageSchema = new mongoose.Schema({
-    content: { type: String, required: true },
+    content: { type: String, required: true }, 
+    encryptedContent: { type: String, required: false }, 
+    encryptedContentForSender: { type: String, required: false },
+    signature: { type: String, required: false }, 
+    messageHash: { type: String, required: false },
     emisor: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     receptor: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     date : { type: Date, required: true }

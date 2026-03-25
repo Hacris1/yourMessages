@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { userServices } from "./user.service.js";
 import type { updateUserDto } from "./dto/user.dto.js";
+import { rateLimitService } from "../auth/rate-limit.service.js";
 
 class UserController {
 
@@ -55,11 +56,35 @@ class UserController {
 
     public async login (req: Request, res: Response) {
         const { email, password } = req.body;
+
+        const isAllowed = rateLimitService.registerFailedAttempt(email);
+        
+        if (!isAllowed) {
+            const attempts = rateLimitService.getAttempts(email);
+            const remainingTime = attempts?.blockedUntil 
+                ? Math.ceil((attempts.blockedUntil - Date.now()) / 1000)
+                : 0;
+            
+            return res.status(429).json({ 
+                error: 'Too many failed login attempts. Please try again later.',
+                remainingSeconds: remainingTime
+            });
+        }
+
         try {
             const token = await userServices.login(email, password);
-            res.json({ token });
+
+            rateLimitService.resolveAttempt(email);
+            
+            res.json({ 
+                token,
+                message: 'Login successful'
+            });
         } catch (error) {
-            res.status(401).json({ error: 'Invalid credentials' });
+            res.status(401).json({ 
+                error: error instanceof Error ? error.message : 'Invalid credentials',
+                attempts: rateLimitService.getAttempts(email)?.attempts || 0
+            });
         }
     }
 
@@ -157,6 +182,38 @@ class UserController {
             });
         } catch (error) {
             res.status(500).json({ error: 'Error deleting account' });
+        }
+    }
+
+
+    public async logout (req: Request, res: Response) {
+        try {
+            const token = req.headers.authorization?.split(' ')[1];
+            const userId = req.body.userId;
+
+            if (!token || !userId) {
+                return res.status(400).json({ error: 'Token and userId are required' });
+            }
+
+            await userServices.logout(token, userId);
+            res.json({ message: 'Logout successful' });
+        } catch (error) {
+            res.status(500).json({ error: 'Error logging out' });
+        }
+    }
+
+    public async logoutAll (req: Request, res: Response) {
+        try {
+            const userId = req.body.userId;
+
+            if (!userId) {
+                return res.status(400).json({ error: 'userId is required' });
+            }
+
+            await userServices.logoutAll(userId);
+            res.json({ message: 'All sessions logged out successfully' });
+        } catch (error) {
+            res.status(500).json({ error: 'Error logging out all sessions' });
         }
     }
 

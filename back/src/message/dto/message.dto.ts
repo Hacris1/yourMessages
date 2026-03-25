@@ -4,11 +4,17 @@ export interface MessageInput {
     content: string,
     emisor: IUser,
     receptor: IUser,
-    date : Date
-
+    date : Date,
+    encryptedContent: string,
+    encryptedContentForSender: string,
+    signature: string,
+    messageHash: string
 }
 
 export interface MessageInputUpdate {
     content: string,
-    date : Date
+    date : Date,
+    encryptedContent?: string,
+    signature?: string,
+    messageHash?: string
 }

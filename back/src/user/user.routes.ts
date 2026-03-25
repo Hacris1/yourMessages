@@ -4,6 +4,8 @@ import { userController } from "./user.controller.js";
 export const router = express.Router();
 
 router.post("/login", userController.login);
+router.post("/logout", userController.logout);
+router.post("/logout-all", userController.logoutAll);
 router.post("/regenerateKeys", userController.regenerateKeys);
 router.post("/deactivateAccount", userController.deactivateAccount);
 router.post("/deleteAccount", userController.deleteAccount);

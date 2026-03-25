@@ -11,6 +11,11 @@
 *.sln.docstates
 *.env
 
+# HTTPS Certificates (NEVER commit these!)
+certs/
+*.pem
+*.key
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
