@@ -5,6 +5,7 @@ import { tokenBlacklistService } from '../user/token-blacklist.service.js';
 export interface AuthRequest extends Request {
     userId?: string;
     user?: any;
+    headers: Record<string, string | string[] | undefined>;
 }
 
 export const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunction) => {
